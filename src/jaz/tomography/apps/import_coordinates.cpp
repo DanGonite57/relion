@@ -177,7 +177,16 @@ int main(int argc, char *argv[])
         // See if the input is a linux wildcard
         if (inStarFn.globFiles(fns_partfiles) == 1)
         {
-            MDin.read(inStarFn);
+            MetaDataTable MDpart;
+            FileName tomoname = "None";
+            if (!(MDpart.read(inStarFn) && MDpart.containsLabel(EMDL_TOMO_NAME)))
+            {
+                tomoname = (inStarFn.afterLastOf("/")).beforeLastOf(".");
+                tomoname.replaceAllSubstrings(remove_substring, "");
+                tomoname.replaceAllSubstrings(remove_substring2, "");
+            }
+            readCoordinateFile(inStarFn, MDin, is_centered, scale_factor, add_factor, tomoname);
+            //   MDin.read(inStarFn);
         }
         else
         {
