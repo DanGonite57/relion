@@ -22,7 +22,7 @@ from .._cli import cli
 from ..._utils.relion import relion_pipeline_job
 
 console = Console(record=True)
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'  
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
 @cli.command(name='cryoCARE:predict')
 @relion_pipeline_job
@@ -37,7 +37,7 @@ def cryoCARE_predict(
 
 ):
     """Denoise tomograms using cryoCARE (>=v0.2.1).
-    
+
     Requires that two tomograms have been generated using the same sample.
     These can be generated via taking odd/even frames during motion correction
     (optimal) or by taking odd/even tilts during tomogram reconstruction.
@@ -104,24 +104,35 @@ def cryoCARE_predict(
             training_job=False,
         )
     even_tomos, odd_tomos = find_tomogram_halves(global_star, tomogram_name)
-    predict_json = generate_predict_json(
-        even_tomos=even_tomos,
-        odd_tomos=odd_tomos,
-        training_dir=training_dir,
-        model_name=model_file,
-        output_directory=output_directory,
-        n_tiles=n_tiles,
-        gpu=gpu,
-    )
-    save_json(
-        training_dir=training_dir,
-        output_json=predict_json,
-        json_prefix=PREDICT_CONFIG_PREFIX,
-    )
 
-    console.log('Generating denoised tomograms')
-    cmd = f"{predict_executable} --conf {training_dir}/{PREDICT_CONFIG_PREFIX}.json"
-    subprocess.run(cmd, shell=True, stderr=subprocess.STDOUT)
+    processes = []
+    for i, gpu_id in enumerate(gpu):
+        even_tomos_batch = even_tomos[i::len(gpu)]
+        odd_tomos_batch = odd_tomos[i::len(gpu)]
+
+        predict_config = f"{PREDICT_CONFIG_PREFIX}_gpu{gpu_id}"
+        predict_json = generate_predict_json(
+            even_tomos=even_tomos_batch,
+            odd_tomos=odd_tomos_batch,
+            training_dir=training_dir,
+            model_name=model_file,
+            output_directory=output_directory,
+            n_tiles=n_tiles,
+            gpu=[gpu_id],
+        )
+        save_json(
+            training_dir=training_dir,
+            output_json=predict_json,
+            json_prefix=predict_config,
+        )
+
+        console.log(f'Generating denoised tomograms on GPU {gpu_id}')
+        cmd = f"{predict_executable} --conf {training_dir}/{predict_config}.json"
+        processes.append(subprocess.Popen(cmd, shell=True, stderr=subprocess.STDOUT))
+
+    for process in processes:
+        process.wait()
+
     rename_predicted_tomograms(
         even_tomos=even_tomos,
         tomogram_dir=tomogram_dir,
