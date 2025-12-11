@@ -456,12 +456,13 @@ void AlignTiltseriesRunner::executeAreTomo(long idx_tomo, int rank)
     // Tomogram thickness should be in unbinned pixels
     command += " -AlignZ " + floatToString(thickness_pix);
     // Skip reconstruction of the tomogram in AreTomo...
-    command += " -volZ 0";
+    command += " -VolZ 0";
+    command += " -DarkTol 0";
 
     if (tomogramSet.tomogramTables[idx_tomo].containsLabel(EMDL_TOMO_NOMINAL_TILT_AXIS_ANGLE))
     {
         RFLOAT tiltaxis_angle = tomogramSet.tomogramTables[idx_tomo].getDouble(EMDL_TOMO_NOMINAL_TILT_AXIS_ANGLE, 0);
-        command += " -TiltAxis " + floatToString(tiltaxis_angle);
+        command += " -TiltAxis " + floatToString(tiltaxis_angle) + " 1";
     }
 
     if (do_aretomo_tiltcorrect)

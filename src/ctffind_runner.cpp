@@ -738,8 +738,10 @@ void CtffindRunner::executeCtffind4(long int imic)
 	fh << Cs << std::endl;
 	fh << AmplitudeConstrast << std::endl;
 	fh << ctf_boxsize << std::endl;
+	// fh << resol_min << std::endl;
 	fh << resol_min << std::endl;
-	fh << my_maxres << std::endl;
+	// fh << my_maxres << std::endl;
+	fh << resol_max << std::endl;
 	fh << my_min_defocus << std::endl;
 	fh << my_max_defocus << std::endl;
 	fh << step_defocus << std::endl;
@@ -769,6 +771,14 @@ void CtffindRunner::executeCtffind4(long int imic)
 		fh << "no" << std::endl;
 	// Set determine sample tilt? (as of ctffind-4.1.15)
 	fh << "no" << std::endl;
+	// Set determine sample thickness? (as of ctffind-5)
+	fh << "no" << std::endl;
+	// fh << "yes" << std::endl;
+	// fh << "yes" << std::endl;
+	// fh << "30" << std::endl;
+	// fh << "3" << std::endl;
+	// fh << "no" << std::endl;
+	// fh << "no" << std::endl;
 	// Set expert options?
 	fh << "no" << std::endl;
 
