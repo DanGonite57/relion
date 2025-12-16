@@ -28,7 +28,7 @@ def get_poses_along_filament_backbones(
         ..., help="spacing between particles along filaments in angstroms."
     ),
     filament_polarity_known: bool = typer.Option(
-        True, help="Whether filament polarity from annotations should be fixed "
+        False, help="Whether filament polarity from annotations should be fixed "
                    "during refinement."
     )
 ):
