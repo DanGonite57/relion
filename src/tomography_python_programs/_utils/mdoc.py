@@ -21,10 +21,10 @@ def calculate_pre_exposure_dose(
             'only one of dose_per_tilt_image and dose_per_movie_frame can be set.'
         )
     dose_override_provided = (
-        dose_per_tilt_image is not None
-        or dose_per_movie_frame is not None
+        dose_per_tilt_image
+        or dose_per_movie_frame
     )
-    if "ExposureDose" in df.columns and dose_override_provided is False:
+    if "ExposureDose" in df.columns and not dose_override_provided:
         pre_exposure_dose = np.cumsum(df["ExposureDose"].to_numpy())
     elif dose_per_tilt_image is not None:
         pre_exposure_dose = dose_per_tilt_image * np.arange(len(df))

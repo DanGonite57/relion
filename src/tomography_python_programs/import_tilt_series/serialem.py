@@ -55,8 +55,8 @@ def import_tilt_series_from_serial_em(
     amplitude_contrast : Amplitude contrast fraction (e.g. 0.1)
     optics_group_name : Name of the optics group
     invert_defocus_handedness: Set this to flip the handedness of the defocus geometry (default=1).
-        The value of this parameter is either +1 or -1, and it describes whether the focus 
-        increases or decreases as a function of Z distance. It has to be determined experimentally. 
+        The value of this parameter is either +1 or -1, and it describes whether the focus
+        increases or decreases as a function of Z distance. It has to be determined experimentally.
     images_are_motion_corrected : Set this if your raw images have already been motion corrected and/or are not movies.
     dose_per_tilt_image : dose applied in electrons per square angstrom to each tilt image.
         If set, this will override the values from the mdoc file.
@@ -99,7 +99,7 @@ def import_tilt_series_from_serial_em(
 
     # Following code validates the presence of tomogram_ids in
     # tilt_image_files. If there's a mismatch the tomogram_ids list is updated
-    tilt_image_ids = [_utils.mdoc.construct_tomogram_id(tilt_image_file, prefix = '')
+    tilt_image_ids = [_utils.mdoc.construct_tomogram_id(tilt_image_file, prefix)
         for tilt_image_file in tilt_image_files
     ]
 
@@ -158,6 +158,9 @@ def import_tilt_series_from_serial_em(
             nominal_tilt_axis_angle=nominal_tilt_axis_angle,
             images_are_motion_corrected=images_are_motion_corrected
         )
+        if tilt_image_df.empty:
+            warnings.warn(f'No images found for tomogram {tomogram_id}, skipping.')
+            continue
         if np.allclose(tilt_image_df['rlnMicrographPreExposure'], 0):
             warnings.warn(
                 f'Pre-exposure dose is 0 for all micrographs in {tomogram_id}'
@@ -183,6 +186,8 @@ def _generate_tilt_image_dataframe(
 ) -> pd.DataFrame:
     """Generate a dataframe containing data about images in a tilt-series."""
     df = mdocfile.read(mdoc_file)
+    if df.empty:
+        return df
     df['DateTime'] = pd.to_datetime(df['DateTime'])
     df = df.sort_values(by="DateTime", ascending=True)
     df['pre_exposure_dose'] = calculate_pre_exposure_dose(
@@ -199,7 +204,7 @@ def _generate_tilt_image_dataframe(
         'rlnTomoNominalTiltAxisAngle': df['nominal_tilt_axis_angle'],
         'rlnMicrographPreExposure': df['pre_exposure_dose'],
     })
-    
+
     if not images_are_motion_corrected:
         movie_information_df=pd.DataFrame({
             'rlnMicrographMovieName': df['tilt_image_file'],

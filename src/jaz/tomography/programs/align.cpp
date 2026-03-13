@@ -42,7 +42,7 @@ void AlignProgram::run()
 		initialise();
 
 		AberrationsCache aberrationsCache(particleSet.optTable, boxSize, particleSet.getTiltSeriesPixelSize(0));
-	
+
 	Log::endSection();
 
 
@@ -104,7 +104,7 @@ void AlignProgram::parseInput()
 	freqCutoffFract = textToDouble(parser.getOption("--cutoff_fract", "Ignore shells for which the relative dose or frequency weight falls below this fraction of the average", "0.02"));
 
 	Log::readParams(parser);
-	
+
 	if (deformationType != "Fourier" && deformationType != "spline" && deformationType != "linear")
 	{
 		parser.reportError("ERROR: The deformation model (--def_model) must be either 'linear', 'Fourier' or 'spline'");
@@ -263,7 +263,7 @@ void AlignProgram::processTomograms(
 			freqWeight.write(diagPrefix + "_frq_weight.mrc");
 		}
 
-		
+
 		std::vector<BufferedImage<double>> CCs;
 
 		if (do_motion || !shiftOnly || !globalShift)
@@ -274,7 +274,7 @@ void AlignProgram::processTomograms(
 					range, true, num_threads, padding, Prediction::OwnHalf,
 					per_tomogram_progress && verbosity > 0);
 		}
-		
+
 		const int progress_bar_offset = per_tomogram_progress? 0 : tt * num_iters;
 
 		if (do_motion)
@@ -293,7 +293,7 @@ void AlignProgram::processTomograms(
 			if (!shiftOnly)
 			{
 				NoMotionModel noMotionModel;
-				
+
 				performAlignment(
 					noMotionModel, CCs, tomogram,
 					t, progress_bar_offset, per_tomogram_progress);
@@ -338,7 +338,7 @@ void AlignProgram::processTomograms(
 					shifts, tomogram.frameSequence, tomogram.name,
 					getTempFilenameRoot(tomogram.name) + "_shifts");
 			}
-			
+
 		}
 
 		if (verbosity > 0 && per_tomogram_progress)
@@ -360,9 +360,9 @@ std::string AlignProgram::getTempFilenameRoot(const std::string& tomogram_name)
 }
 
 void AlignProgram::writeTempAlignmentData(
-		const std::vector<d4Matrix>& proj, 
+		const std::vector<d4Matrix>& proj,
 		const std::vector<d3Vector>& pos, const Tomogram &tomogram, int t)
-{	
+{
 	const int pc = particles[t].size();
 	const int fc = tomogramSet.getFrameCount(t);
 
@@ -394,7 +394,7 @@ void AlignProgram::writeTempAlignmentData(
     }
 
 	temp_positions.write(temp_filename_root + "_positions.star");
-	
+
 	MetaDataTable temp_projections;
 
 	for (int f = 0; f < fc; f++)
@@ -415,7 +415,7 @@ void AlignProgram::writeTempAlignmentData(
 }
 
 void AlignProgram::writeTempMotionData(
-		const std::vector<Trajectory>& traj, 
+		const std::vector<Trajectory>& traj,
 		int t)
 {
 	const std::string tomoName = tomogramSet.getTomogramName(t);
@@ -425,14 +425,14 @@ void AlignProgram::writeTempMotionData(
 }
 
 void AlignProgram::writeTempDeformationData(
-		const std::vector<std::vector<double>>& def, 
+		const std::vector<std::vector<double>>& def,
 		int t)
 {
 	const std::string tomoName = tomogramSet.getTomogramName(t);
 	const std::string temp_filename_root = getTempFilenameRoot(tomoName);
-	
+
 	MetaDataTable temp_deformations;
-		
+
 	const int fc = def.size();
 
 	for (int f = 0; f < fc; f++)
@@ -494,7 +494,7 @@ void AlignProgram::readTempData(int t)
 			allTrajectories[t][p].shifts_Ang.resize(fc);
 
 			for (int f = 0; f < fc; f++)
-			{				
+			{
 				d3Vector shift;
 				mdt.getValueSafely(EMDL_ORIENT_ORIGIN_X_ANGSTROM, shift.x, f);
 				mdt.getValueSafely(EMDL_ORIENT_ORIGIN_Y_ANGSTROM, shift.y, f);
@@ -504,22 +504,22 @@ void AlignProgram::readTempData(int t)
 			}
 		}
 	}
-	
-	
+
+
 	if (do_deformation)
 	{
 		MetaDataTable temp_deformations;
 		temp_deformations.read(temp_filename_root + "_deformations.star");
-		
+
 		const i2Vector gridSize(deformationParameters.grid_width, deformationParameters.grid_height);
-		
+
 		std::vector<std::vector<double>> coeffs(fc);
-		
+
 		for (int f = 0; f < fc; f++)
 		{
 			coeffs[f] = temp_deformations.getDoubleVector(EMDL_TOMO_DEFORMATION_COEFFICIENTS, f);
 		}
-		
+
 		tomogramSet.setDeformation(t, gridSize, deformationType, coeffs);
 	}
 
@@ -543,6 +543,7 @@ void AlignProgram::readTempData(int t)
 
 void AlignProgram::mergeLogFiles()
 {
+	Log::print("Merging log files");
 	const int tc = tomogramSet.size();
 
 	std::vector<FileName> eps_files;
@@ -551,6 +552,14 @@ void AlignProgram::mergeLogFiles()
 	for (int t = 0; t < tc; t++)
 	{
 		const std::string tomo_name = tomogramSet.getTomogramName(t);
+
+		const std::string shifts_fn = getTempFilenameRoot(tomo_name)
+				+ "_shifts.eps";
+
+		if (ZIO::fileExists(shifts_fn))
+		{
+			eps_files.push_back(shifts_fn);
+		}
 
 		if (do_motion)
 		{

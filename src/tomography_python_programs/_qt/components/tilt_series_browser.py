@@ -10,6 +10,8 @@ from napari.qt.threading import thread_worker
 from qtpy.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy
 from superqt.combobox import QSearchableComboBox
 from lru import LRU
+import torch
+from torch_fourier_rescale import fourier_rescale_2d
 
 from ..._metadata_models.gui.lazy_tilt_series_data import LazyTiltSeriesData
 from ..._metadata_models.gui.tilt_series_set import GuiTiltSeriesSet
@@ -155,7 +157,7 @@ class TiltSeriesBrowserWidget(QWidget):
             self.viewer.layers['tilt-series'].data = tilt_series.data
         else:
             self.viewer.add_image(
-                data=tilt_series.data, name='tilt-series', interpolation='bicubic'
+                data=tilt_series.data, name='tilt-series', interpolation2d='cubic', interpolation3d='cubic'
             )
         self.viewer.status = _status_from_lazy_tilt_series(tilt_series)
         if tilt_series.n_images_loaded == 1:
@@ -234,7 +236,7 @@ class TiltSeriesBrowserWidget(QWidget):
 def _create_empty_tilt_series_data(tilt_image_files: List[Path],
                                    dtype=np.float32) -> np.ndarray:
     with mrcfile.open(tilt_image_files[0], header_only=True) as mrc:
-        tilt_series_shape = (len(tilt_image_files), mrc.header.ny, mrc.header.nx)
+        tilt_series_shape = (len(tilt_image_files), mrc.header.ny // 8, mrc.header.nx // 8)
     return np.zeros(shape=tilt_series_shape, dtype=dtype)
 
 
@@ -253,7 +255,13 @@ def _read_tilt_series(tilt_series_id: str,
     indexed_filenames.sort(key=lambda t: abs(t[0] - (n_images // 2)))
 
     for i, (image_index, filename) in enumerate(indexed_filenames, start=1):
-        tilt_series[image_index] = mrcfile.read(filename)
+        tilt_series[image_index] = fourier_rescale_2d(
+                        torch.from_numpy(
+                            mrcfile.read(filename).astype(np.float32)
+                        ),
+                        1,
+                        8,
+                    )[0].numpy()
         lazy_tilt_series_data = LazyTiltSeriesData(
             name=tilt_series_id,
             data=tilt_series,
